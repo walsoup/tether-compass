@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Yearn Compass</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    
+    :root {
+      --md-sys-color-primary: rgb(93, 37, 20);
+      --md-sys-color-on-primary: rgb(255, 255, 255);
+      --md-sys-color-primary-container: rgb(161, 90, 69);
+      --md-sys-color-secondary-container: rgb(135, 101, 92);
+      --md-sys-color-on-secondary-container: rgb(255, 255, 255);
+      --md-sys-color-background: rgb(255, 248, 246);
+      --md-sys-color-on-background: rgb(35, 25, 23);
+      --md-sys-color-surface-variant: rgb(245, 222, 216);
+      --md-sys-color-surface-container-lowest: rgb(255, 255, 255);
+      --md-sys-color-surface-container: rgb(247, 228, 224);
+      --md-sys-color-surface-container-highest: rgb(223, 206, 201);
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at top left, var(--md-sys-color-surface-container-lowest), var(--md-sys-color-surface-container), var(--md-sys-color-surface-variant));
+      color: var(--md-sys-color-on-background);
+      overflow: hidden;
+      touch-action: none;
+    }
+    
+    .m3-card {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(16px);
+      border-radius: 32px;
+      box-shadow: 0 8px 32px rgba(93, 37, 20, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    
+    .m3-button-primary {
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border-radius: 100px;
+      transition: transform 0.1s, filter 0.2s;
+    }
+    .m3-button-primary:active {
+      transform: scale(0.95);
+      filter: brightness(0.9);
+    }
+    
+    .m3-button-secondary {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-primary);
+      border-radius: 100px;
+      transition: transform 0.1s;
+    }
+    .m3-button-secondary:active {
+      transform: scale(0.95);
+    }
+    
+    .compass-ring {
+      transition: transform 0.2s cubic-bezier(0.2, 0.0, 0.2, 1);
+      will-change: transform;
+    }
+    
+    .aligned-glow {
+      box-shadow: 0 0 80px 20px rgba(161, 90, 69, 0.4);
+      background: var(--md-sys-color-surface-container-lowest);
+      border-color: var(--md-sys-color-primary) !important;
+    }
+
+    @keyframes pulse-hint {
+      0%, 100% { opacity: 0.3; transform: scale(0.9); }
+      50% { opacity: 0.8; transform: scale(1.1); }
+    }
+    .hint-glow {
+      animation: pulse-hint 2.5s infinite ease-in-out;
+    }
+
+    .chat-bubble-me {
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary);
+      border-radius: 16px 16px 4px 16px;
+      align-self: flex-end;
+    }
+    
+    .chat-bubble-them {
+      background: white;
+      color: var(--md-sys-color-primary);
+      border-radius: 16px 16px 16px 4px;
+      align-self: flex-start;
+      border: 1px solid var(--md-sys-color-surface-container-highest);
+    }
+
+    /* hide scrollbar for chat */
+    #chat-messages::-webkit-scrollbar { display: none; }
+    #chat-messages { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="h-[100dvh] w-screen relative">
+
+  <!-- Screen 1: Intro & Permissions -->
+  <div id="screen-intro" class="absolute inset-0 flex flex-col items-center justify-center p-6 z-50 bg-transparent transition-opacity duration-300">
+    <div class="w-full max-w-md m3-card p-8 flex flex-col items-center text-center space-y-6">
+      <i data-lucide="compass" class="w-16 h-16 text-[var(--md-sys-color-primary)]"></i>
+      <h1 class="text-4xl font-extrabold tracking-tight text-[var(--md-sys-color-primary)]">yearn<br>compass</h1>
+      <p class="text-lg opacity-80">point your phone directly at your long distance situationship.</p>
+      <button id="btn-start" class="m3-button-primary w-full py-4 text-xl font-semibold mt-4 shadow-lg shadow-[rgba(93,37,20,0.2)]">
+        grant permissions
+      </button>
+    </div>
+  </div>
+
+  <!-- Screen 2: Share & Connect -->
+  <div id="screen-connect" class="absolute inset-0 flex flex-col items-center justify-center p-6 hidden z-40 bg-transparent">
+    <div class="w-full max-w-md m3-card p-8 flex flex-col items-center text-center space-y-6">
+      <h2 class="text-2xl font-bold text-[var(--md-sys-color-primary)]">connection</h2>
+      
+      <div class="w-full space-y-2 text-left">
+        <label class="text-sm font-semibold ml-2 opacity-70">your code (send this)</label>
+        <div class="flex gap-2">
+          <input type="text" id="my-code" readonly class="w-full bg-white/60 rounded-2xl p-4 outline-none text-center font-mono text-sm shadow-inner text-[var(--md-sys-color-primary)] font-bold" placeholder="locating...">
+          <button id="btn-copy" class="m3-button-secondary px-6 font-bold flex items-center justify-center">
+            <i data-lucide="copy" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="w-full space-y-2 text-left mt-4">
+        <label class="text-sm font-semibold ml-2 opacity-70">their code (paste here)</label>
+        <input type="text" id="partner-code" class="w-full bg-white/60 rounded-2xl p-4 outline-none text-center font-mono text-sm shadow-inner focus:ring-4 ring-[var(--md-sys-color-surface-container-highest)]" placeholder="paste code here...">
+      </div>
+
+      <button id="btn-track" class="m3-button-primary w-full py-4 text-xl font-semibold mt-4 opacity-50 pointer-events-none transition-opacity shadow-lg shadow-[rgba(93,37,20,0.2)]">
+        start yearning
+      </button>
+    </div>
+  </div>
+
+  <!-- Screen 3: The Compass & Chat -->
+  <div id="screen-compass" class="absolute inset-0 flex flex-col items-center justify-between pb-6 pt-12 hidden z-30">
+    
+    <!-- Top Text -->
+    <div class="flex-none text-center px-4">
+      <p id="distance-display" class="text-4xl font-extrabold text-[var(--md-sys-color-primary)] tracking-tight">calculating...</p>
+      <p id="status-display" class="text-lg opacity-80 font-semibold mt-1">turn around</p>
+    </div>
+
+    <!-- Compass Area -->
+    <div class="flex-grow flex items-center justify-center w-full relative">
+      <div id="compass-container" class="relative w-[280px] h-[280px] rounded-full border-[8px] border-[var(--md-sys-color-surface-container-highest)] flex items-center justify-center bg-white/60 transition-all duration-300 shadow-2xl">
+        
+        <!-- The glowing hint -->
+        <div id="target-dot" class="compass-ring absolute w-full h-full flex flex-col items-center justify-start pointer-events-none z-10">
+          <div class="hint-glow w-12 h-2.5 rounded-full bg-[var(--md-sys-color-primary)] blur-sm -mt-[5px]"></div>
+        </div>
+
+        <!-- Custom SVG Arrow -->
+        <div id="arrow" class="compass-ring absolute w-full h-full flex flex-col items-center justify-start py-8">
+          <svg viewBox="0 0 24 24" class="w-20 h-20 text-[var(--md-sys-color-primary)] fill-current drop-shadow-xl opacity-90" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L4 20l8-4 8 4-8-18z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden Chat Box (appears over the cancel button area) -->
+    <div class="flex-none w-full max-w-sm px-6 relative h-48 mb-4">
+      <div class="m3-card w-full h-full p-3 flex flex-col relative overflow-hidden">
+        
+        <!-- Frosted Lock Overlay -->
+        <div id="chat-lock" class="absolute inset-0 z-20 bg-[var(--md-sys-color-surface-variant)]/70 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500">
+          <i data-lucide="lock" class="w-6 h-6 text-[var(--md-sys-color-primary)] mb-2 opacity-60"></i>
+          <p class="font-bold text-[var(--md-sys-color-primary)] opacity-70 text-sm">lock on to chat</p>
+        </div>
+
+        <!-- Messages Area -->
+        <div id="chat-messages" class="flex-grow overflow-y-auto flex flex-col gap-2 pb-2 px-1">
+          <!-- messages get injected here -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="flex gap-2 flex-none pt-2 border-t border-[var(--md-sys-color-surface-container-highest)]">
+          <input type="text" id="chat-input" class="w-full bg-white/60 rounded-full px-4 py-2 outline-none text-sm text-[var(--md-sys-color-primary)]" placeholder="whisper something..." disabled>
+          <button id="btn-send" class="m3-button-primary w-10 h-10 rounded-full flex items-center justify-center flex-none opacity-50" disabled>
+            <i data-lucide="send" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Cancel Button -->
+    <div class="flex-none w-full flex justify-center mt-auto">
+      <button id="btn-back" class="m3-button-secondary px-8 py-3 font-bold text-sm">
+        cancel
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    lucide.createIcons();
+
+    // Firebase Setup
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    
+    let db, auth, currentUser;
+    try {
+      const app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+
+      const initAuth = async () => {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      };
+      
+      onAuthStateChanged(auth, (user) => {
+        currentUser = user;
+      });
+      
+      initAuth();
+    } catch(e) {
+      console.error("firebase is crying", e);
+    }
+
+    // UI Elements
+    const screenIntro = document.getElementById('screen-intro');
+    const screenConnect = document.getElementById('screen-connect');
+    const screenCompass = document.getElementById('screen-compass');
+    
+    const btnStart = document.getElementById('btn-start');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnTrack = document.getElementById('btn-track');
+    const btnBack = document.getElementById('btn-back');
+    const btnSend = document.getElementById('btn-send');
+    
+    const inputMyCode = document.getElementById('my-code');
+    const inputPartnerCode = document.getElementById('partner-code');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatLock = document.getElementById('chat-lock');
+    
+    const arrow = document.getElementById('arrow');
+    const targetDot = document.getElementById('target-dot');
+    const compassContainer = document.getElementById('compass-container');
+    const distanceDisplay = document.getElementById('distance-display');
+    const statusDisplay = document.getElementById('status-display');
+
+    let myLat = null;
+    let myLon = null;
+    let partnerLat = null;
+    let partnerLon = null;
+    let targetBearing = 0;
+    
+    let currentRotation = 0; 
+    let lastVibe = 0;
+    
+    let isAligned = false;
+    let currentRoomId = null;
+    let unsubscribeChat = null;
+
+    function toRad(deg) { return deg * Math.PI / 180; }
+    function toDeg(rad) { return rad * 180 / Math.PI; }
+
+    function calculateGreatCircle(lat1, lon1, lat2, lon2) {
+      const R = 6371; 
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+
+      const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+      const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+                Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+      let bearing = toDeg(Math.atan2(y, x));
+      bearing = (bearing + 360) % 360;
+
+      return { distance, bearing };
+    }
+
+    function encodeLoc(lat, lon) {
+      const str = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+      return btoa(str).replace(/=/g, '');
+    }
+
+    function decodeLoc(code) {
+      try {
+        const str = atob(code);
+        const parts = str.split(',');
+        return { lat: parseFloat(parts[0]), lon: parseFloat(parts[1]) };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Chat Logic
+    function joinChatRoom(myCode, theirCode) {
+      if (!db || !currentUser) return;
+      
+      // deterministic room id based on both codes so they always end up together
+      currentRoomId = [myCode, theirCode].sort().join('_');
+      
+      const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'chat_rooms', currentRoomId);
+      
+      if (unsubscribeChat) unsubscribeChat();
+      
+      unsubscribeChat = onSnapshot(roomRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          renderMessages(data.messages || []);
+        }
+      }, (error) => {
+        console.error("chat broke:", error);
+      });
+    }
+
+    async function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text || !currentRoomId || !currentUser || !isAligned) return;
+      
+      chatInput.value = '';
+      
+      const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'chat_rooms', currentRoomId);
+      
+      try {
+        const snapshot = await getDoc(roomRef);
+        const currentMessages = snapshot.exists() ? snapshot.data().messages || [] : [];
+        
+        const newMessage = {
+          id: Date.now().toString(),
+          text: text,
+          senderId: currentUser.uid,
+          timestamp: Date.now()
+        };
+        
+        currentMessages.push(newMessage);
+        
+        // keeping it clean, only store last 50 msgs
+        if (currentMessages.length > 50) currentMessages.shift();
+        
+        await setDoc(roomRef, { messages: currentMessages }, { merge: true });
+      } catch (e) {
+        console.error("failed to send:", e);
+      }
+    }
+
+    function renderMessages(messages) {
+      if (!currentUser) return;
+      
+      chatMessages.innerHTML = '';
+      messages.forEach(msg => {
+        const isMe = msg.senderId === currentUser.uid;
+        const div = document.createElement('div');
+        div.className = `px-3 py-1.5 text-sm max-w-[85%] break-words ${isMe ? 'chat-bubble-me' : 'chat-bubble-them'}`;
+        div.innerText = msg.text;
+        chatMessages.appendChild(div);
+      });
+      
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Input handlers
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+    btnSend.addEventListener('click', sendMessage);
+
+    chatInput.addEventListener('input', (e) => {
+      if (e.target.value.trim().length > 0) {
+        btnSend.classList.remove('opacity-50');
+      } else {
+        btnSend.classList.add('opacity-50');
+      }
+    });
+
+    // Device Orientation
+    function handleOrientation(event) {
+      let compassHeading = null;
+
+      if (event.webkitCompassHeading !== undefined) {
+        compassHeading = event.webkitCompassHeading;
+      } else if (event.alpha !== null) {
+        compassHeading = 360 - event.alpha; 
+      }
+
+      if (compassHeading === null) return;
+
+      let desiredRotation = targetBearing - compassHeading;
+      let diff = desiredRotation - (currentRotation % 360);
+      
+      diff = (diff % 360 + 360) % 360;
+      if (diff > 180) diff -= 360;
+
+      currentRotation += diff;
+      
+      arrow.style.transform = `rotate(${currentRotation}deg)`;
+      targetDot.style.transform = `rotate(${currentRotation}deg)`;
+
+      let pointingDiff = (targetBearing - compassHeading) % 360;
+      pointingDiff = (pointingDiff + 360) % 360;
+      if (pointingDiff > 180) pointingDiff = 360 - pointingDiff;
+
+      // Unlocking the chat logic
+      if (pointingDiff < 12) {
+        if (!isAligned) {
+          isAligned = true;
+          chatLock.classList.add('opacity-0', 'pointer-events-none');
+          chatInput.disabled = false;
+          btnSend.disabled = false;
+        }
+        
+        compassContainer.classList.add('aligned-glow');
+        statusDisplay.innerText = "staring directly at them";
+        
+        const now = Date.now();
+        if (now - lastVibe > 1000 && navigator.vibrate) {
+          navigator.vibrate([50]);
+          lastVibe = now;
+        }
+      } else {
+        if (isAligned) {
+          isAligned = false;
+          chatLock.classList.remove('opacity-0', 'pointer-events-none');
+          chatInput.disabled = true;
+          btnSend.disabled = true;
+        }
+
+        compassContainer.classList.remove('aligned-glow');
+        if (pointingDiff < 45) {
+          statusDisplay.innerText = "getting warmer...";
+        } else if (pointingDiff < 90) {
+          statusDisplay.innerText = "look around";
+        } else {
+          statusDisplay.innerText = "turn around";
+        }
+      }
+    }
+
+    // Flow Control
+    btnStart.addEventListener('click', async () => {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== 'granted') {
+            alert("compass permission denied smh");
+            return;
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          myLat = pos.coords.latitude;
+          myLon = pos.coords.longitude;
+          inputMyCode.value = encodeLoc(myLat, myLon);
+          
+          screenIntro.classList.add('hidden');
+          screenConnect.classList.remove('hidden');
+        },
+        (err) => {
+          alert("couldn't get your location... check permissions.");
+        },
+        { enableHighAccuracy: true }
+      );
+    });
+
+    btnCopy.addEventListener('click', () => {
+      inputMyCode.select();
+      document.execCommand('copy');
+      const icon = btnCopy.innerHTML;
+      btnCopy.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i>`;
+      lucide.createIcons();
+      setTimeout(() => {
+        btnCopy.innerHTML = icon;
+      }, 2000);
+    });
+
+    inputPartnerCode.addEventListener('input', (e) => {
+      if (e.target.value.trim().length > 5) {
+        btnTrack.classList.remove('opacity-50', 'pointer-events-none');
+      } else {
+        btnTrack.classList.add('opacity-50', 'pointer-events-none');
+      }
+    });
+
+    btnTrack.addEventListener('click', () => {
+      const theirCode = inputPartnerCode.value.trim();
+      const partnerLoc = decodeLoc(theirCode);
+      if (!partnerLoc || isNaN(partnerLoc.lat)) {
+        alert("invalid code... you sure you copied all of it?");
+        return;
+      }
+      
+      partnerLat = partnerLoc.lat;
+      partnerLon = partnerLoc.lon;
+
+      const { distance, bearing } = calculateGreatCircle(myLat, myLon, partnerLat, partnerLon);
+      targetBearing = bearing;
+      
+      distanceDisplay.innerText = `${Math.round(distance).toLocaleString()} km away`;
+
+      screenConnect.classList.add('hidden');
+      screenCompass.classList.remove('hidden');
+
+      // Boot up the chat connection
+      joinChatRoom(inputMyCode.value, theirCode);
+
+      window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    });
+
+    btnBack.addEventListener('click', () => {
+      window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.removeEventListener('deviceorientation', handleOrientation, true);
+      
+      if (unsubscribeChat) {
+        unsubscribeChat();
+        unsubscribeChat = null;
+      }
+      
+      screenCompass.classList.add('hidden');
+      screenConnect.classList.remove('hidden');
+      
+      // lock it back up just in case
+      isAligned = false;
+      chatLock.classList.remove('opacity-0', 'pointer-events-none');
+      chatInput.disabled = true;
+      btnSend.disabled = true;
+    });
+
+  </script>
+</body>
+</html>
+
+
